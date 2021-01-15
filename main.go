@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/eiannone/keyboard"
 )
@@ -26,9 +27,25 @@ var winSets [][]int = [][]int{
 	{2, 5, 8},
 }
 
-// Width 10
-var xCell []string = []string{"X       X", "  X   X  ", "    X    ", "  X   X  ", "X       X"}
-var oCell []string = []string{"  OOOOO  ", " O     O ", " O     O ", " O     O ", "  OOOOO  "}
+var winCells []int
+
+// Width 9
+var xCell []string = []string{
+	"X       X",
+	"  X   X  ",
+	"    X    ",
+	"  X   X  ",
+	"X       X"}
+var oCell []string = []string{
+	"  OOOOO  ",
+	" O     O ",
+	" O     O ",
+	" O     O ",
+	"  OOOOO  "}
+
+func clear() {
+	fmt.Print("\x1b[2J")
+}
 
 // Drawn board is 17x17 characters (5x5 for each cell)
 func drawBoard() {
@@ -43,8 +60,17 @@ func drawBoard() {
 			var line string
 			for col := 0; col < 3; col++ {
 				// Add green bg and white fg to selected cell
-				if (row*3)+col == highlighted {
-					line += "\x1b[1;42m\x1b[1;37m"
+				if playing {
+					if (row*3)+col == highlighted {
+						if board[highlighted] != ' ' {
+							line += "\x1b[1;41m\x1b[1;37m"
+						} else {
+							line += "\x1b[1;42m\x1b[1;37m"
+						}
+					}
+				} else if contains(winCells, (row*3)+col) {
+
+					line += "\x1b[1;44m\x1b[1;37m"
 				}
 				switch board[(row*3)+col] {
 				case 'X':
@@ -75,22 +101,27 @@ func nextTurn() {
 	xTurn = !xTurn
 }
 
-func reset() int {
+func reset() {
 	playing = true
 	turn = 0
 	board = []byte{' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
+	winCells = []int{}
 	xTurn = true
 	highlighted = 4
-	return gameLoop()
+	gameLoop()
 }
 
-func contains(set map[int]struct{}, item int) bool {
-	_, ok := set[item]
-	return ok
+func contains(set []int, item int) bool {
+	for _, x := range set {
+		if x == item {
+			return true
+		}
+	}
+	return false
 }
 
-func gameOver() byte {
-	set := make(map[int]struct{})
+func getWinner() byte {
+	set := []int{}
 	var vw byte
 	if xTurn {
 		vw = 'X'
@@ -99,44 +130,53 @@ func gameOver() byte {
 	}
 	for i, v := range board {
 		if v == vw {
-			set[i] = struct{}{}
+			set = append(set, i)
 		}
 	}
 
 	for _, winSet := range winSets {
 		if contains(set, winSet[0]) && contains(set, winSet[1]) && contains(set, winSet[2]) {
+			winCells = []int{winSet[0], winSet[1], winSet[2]}
 			return vw
 		}
 	}
 	return ' '
 }
 
-func selectCell() bool {
+func gameOver() {
+	playing = false
+	drawBoard()
+	fmt.Println("Game over!")
+}
+
+func selectCell() {
 	if board[highlighted] != ' ' {
-		return false
+		return
 	}
 	if xTurn {
 		board[highlighted] = 'X'
 	} else {
 		board[highlighted] = 'O'
 	}
+	turn++
+
 	// Check for game over conditions
-	if winner := gameOver(); winner != ' ' {
-		drawBoard()
+	if winner := getWinner(); winner != ' ' {
+		gameOver()
 		fmt.Printf("%c wins!\n", winner)
-		return true
+		return
 	}
 
 	if turn == 9 {
-		drawBoard()
+		gameOver()
 		fmt.Println("It's a tie!")
-		return true
+		return
 	}
 	nextTurn()
-	return false
+	return
 }
 
-func gameLoop() int {
+func gameLoop() {
 	for playing {
 		drawBoard()
 		_, key, err := keyboard.GetKey()
@@ -145,12 +185,13 @@ func gameLoop() int {
 		}
 
 		switch key {
-		case keyboard.KeyEsc, keyboard.KeyCtrlC:
-			return 0
+		// Otherwise Ctrl+C gets eaten
+		case keyboard.KeyCtrlC:
+			os.Exit(0)
+		case keyboard.KeyEsc:
+			return
 		case keyboard.KeyEnter, keyboard.KeySpace:
-			if gameOver := selectCell(); gameOver {
-				return 1
-			}
+			selectCell()
 		case keyboard.KeyArrowUp:
 			if highlighted > 2 {
 				highlighted -= 3
@@ -169,11 +210,6 @@ func gameLoop() int {
 			}
 		}
 	}
-	return 0
-}
-
-func clear() {
-	fmt.Print("\x1b[2J")
 }
 
 func main() {
@@ -198,9 +234,7 @@ func main() {
 		case keyboard.KeyEsc, keyboard.KeyCtrlC:
 			return
 		case keyboard.KeyEnter:
-			if r := reset(); r == 0 {
-				return
-			}
+			reset()
 			fmt.Println("Press ENTER to play again!")
 		}
 	}
