@@ -13,7 +13,7 @@ var board []byte
 var turn int
 var playing bool
 
-// Win sets
+// Winning sets
 var winSets [][]int = [][]int{
 	{0, 1, 2},
 	{3, 4, 5},
@@ -29,6 +29,7 @@ var winSets [][]int = [][]int{
 
 var winCells []int
 
+// The cell characters
 // Width 9
 var xCell []string = []string{
 	"X       X",
@@ -56,20 +57,23 @@ func drawBoard() {
 		fmt.Println("O's turn")
 	}
 	for row := 0; row < 3; row++ {
+		// Each cell is 5 lines tall
 		for cellLine := 0; cellLine < 5; cellLine++ {
 			var line string
 			for col := 0; col < 3; col++ {
-				// Add green bg and white fg to selected cell
 				if playing {
+					// Add bg color to selected cells
 					if (row*3)+col == highlighted {
+						// Add green bg and white fg to available cell
 						if board[highlighted] != ' ' {
 							line += "\x1b[1;41m\x1b[1;37m"
 						} else {
+							// Add red bg and white fg to unavailable cell
 							line += "\x1b[1;42m\x1b[1;37m"
 						}
 					}
 				} else if contains(winCells, (row*3)+col) {
-
+					// Add blue bg to winning 3 cells
 					line += "\x1b[1;44m\x1b[1;37m"
 				}
 				switch board[(row*3)+col] {
@@ -80,6 +84,7 @@ func drawBoard() {
 				default:
 					line += "         "
 				}
+				// Reset bg/fg colors
 				line += "\x1b[1;00m"
 				// Vertical divider
 				if col != 2 {
@@ -111,6 +116,7 @@ func reset() {
 	gameLoop()
 }
 
+// Why do I have to write this; why can't go have this built-in? :C
 func contains(set []int, item int) bool {
 	for _, x := range set {
 		if x == item {
@@ -122,6 +128,7 @@ func contains(set []int, item int) bool {
 
 func getWinner() byte {
 	set := []int{}
+	// Whose turn decides the valid winning(vw) byte
 	var vw byte
 	if xTurn {
 		vw = 'X'
