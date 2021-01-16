@@ -48,7 +48,7 @@ func clear() {
 	fmt.Print("\x1b[2J")
 }
 
-// Drawn board is 17x17 characters (5x5 for each cell)
+// Drawn board is 29x17 characters (9x5 for each cell)
 func drawBoard() {
 	clear()
 	if xTurn {
