@@ -43,6 +43,69 @@ var oCell []string = []string{
 	" O     O ",
 	"  OOOOO  "}
 
+func main() {
+	fmt.Println("Welcome to Tic-Tac-Go!")
+	fmt.Println("Press ENTER to begin")
+
+	if err := keyboard.Open(); err != nil {
+		panic(err)
+	}
+
+	defer keyboard.Close()
+
+	for {
+		_, key, err := keyboard.GetKey()
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Printf("You pressed: rune %q, key %X\r\n", char, key)
+
+		switch key {
+		case keyboard.KeyEsc, keyboard.KeyCtrlC:
+			return
+		case keyboard.KeyEnter:
+			reset()
+			fmt.Println("Press ENTER to play again!")
+		}
+	}
+}
+
+func gameLoop() {
+	for playing {
+		drawBoard()
+		_, key, err := keyboard.GetKey()
+		if err != nil {
+			panic(err)
+		}
+
+		switch key {
+		// Otherwise Ctrl+C gets eaten
+		case keyboard.KeyCtrlC:
+			os.Exit(0)
+		case keyboard.KeyEsc:
+			return
+		case keyboard.KeyEnter, keyboard.KeySpace:
+			selectCell()
+		case keyboard.KeyArrowUp:
+			if highlighted > 2 {
+				highlighted -= 3
+			}
+		case keyboard.KeyArrowDown:
+			if highlighted < 6 {
+				highlighted += 3
+			}
+		case keyboard.KeyArrowLeft:
+			if highlighted != 0 && highlighted != 3 && highlighted != 6 {
+				highlighted--
+			}
+		case keyboard.KeyArrowRight:
+			if highlighted != 2 && highlighted != 5 && highlighted != 8 {
+				highlighted++
+			}
+		}
+	}
+}
+
 func clear() {
 	fmt.Print("\x1b[2J")
 }
@@ -95,60 +158,6 @@ func drawBoard() {
 	}
 }
 
-func nextTurn() {
-	// Default highlight to middle cell
-	highlighted = 4
-	xTurn = !xTurn
-}
-
-func reset() {
-	playing = true
-	turn = 0
-	board = []byte{' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
-	winCells = []int{}
-	xTurn = true
-	highlighted = 4
-	gameLoop()
-}
-
-func contains(set []int, item int) bool {
-	for _, x := range set {
-		if x == item {
-			return true
-		}
-	}
-	return false
-}
-
-func getWinner() byte {
-	set := []int{}
-	var vw byte
-	if xTurn {
-		vw = 'X'
-	} else {
-		vw = 'O'
-	}
-	for i, v := range board {
-		if v == vw {
-			set = append(set, i)
-		}
-	}
-
-	for _, winSet := range winSets {
-		if contains(set, winSet[0]) && contains(set, winSet[1]) && contains(set, winSet[2]) {
-			winCells = []int{winSet[0], winSet[1], winSet[2]}
-			return vw
-		}
-	}
-	return ' '
-}
-
-func gameOver() {
-	playing = false
-	drawBoard()
-	fmt.Println("Game over!")
-}
-
 func selectCell() {
 	if board[highlighted] != ' ' {
 		return
@@ -176,66 +185,57 @@ func selectCell() {
 	return
 }
 
-func gameLoop() {
-	for playing {
-		drawBoard()
-		_, key, err := keyboard.GetKey()
-		if err != nil {
-			panic(err)
-		}
-
-		switch key {
-		// Otherwise Ctrl+C gets eaten
-		case keyboard.KeyCtrlC:
-			os.Exit(0)
-		case keyboard.KeyEsc:
-			return
-		case keyboard.KeyEnter, keyboard.KeySpace:
-			selectCell()
-		case keyboard.KeyArrowUp:
-			if highlighted > 2 {
-				highlighted -= 3
-			}
-		case keyboard.KeyArrowDown:
-			if highlighted < 6 {
-				highlighted += 3
-			}
-		case keyboard.KeyArrowLeft:
-			if highlighted != 0 && highlighted != 3 && highlighted != 6 {
-				highlighted--
-			}
-		case keyboard.KeyArrowRight:
-			if highlighted != 2 && highlighted != 5 && highlighted != 8 {
-				highlighted++
-			}
+func getWinner() byte {
+	set := []int{}
+	var vw byte
+	if xTurn {
+		vw = 'X'
+	} else {
+		vw = 'O'
+	}
+	for i, v := range board {
+		if v == vw {
+			set = append(set, i)
 		}
 	}
+
+	for _, winSet := range winSets {
+		if contains(set, winSet[0]) && contains(set, winSet[1]) && contains(set, winSet[2]) {
+			winCells = []int{winSet[0], winSet[1], winSet[2]}
+			return vw
+		}
+	}
+	return ' '
 }
 
-func main() {
-	fmt.Println("Welcome to Tic-Tac-Go!")
-	fmt.Println("Press ENTER to begin")
+func reset() {
+	playing = true
+	turn = 0
+	board = []byte{' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
+	winCells = []int{}
+	xTurn = true
+	highlighted = 4
+	gameLoop()
+}
 
-	if err := keyboard.Open(); err != nil {
-		panic(err)
-	}
-	defer func() {
-		_ = keyboard.Close()
-	}()
+func nextTurn() {
+	// Default highlight to middle cell
+	highlighted = 4
+	xTurn = !xTurn
+}
 
-	for {
-		_, key, err := keyboard.GetKey()
-		if err != nil {
-			panic(err)
+func gameOver() {
+	playing = false
+	drawBoard()
+	fmt.Println("Game over!")
+}
+
+// Helper function for seeing if an int exists in a slice
+func contains(set []int, item int) bool {
+	for _, x := range set {
+		if x == item {
+			return true
 		}
-		// fmt.Printf("You pressed: rune %q, key %X\r\n", char, key)
-
-		switch key {
-		case keyboard.KeyEsc, keyboard.KeyCtrlC:
-			return
-		case keyboard.KeyEnter:
-			reset()
-			fmt.Println("Press ENTER to play again!")
-		}
 	}
+	return false
 }
