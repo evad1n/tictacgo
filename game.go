@@ -4,6 +4,7 @@ import (
 	"log"
 )
 
+// Draw the board to the specified output log
 // Drawn board is 29x17 characters (9x5 for each cell)
 func drawBoard(log *log.Logger) {
 	for row := 0; row < 3; row++ {
@@ -51,8 +52,6 @@ func drawBoard(log *log.Logger) {
 	log.Println()
 }
 
-type moveFunc func()
-
 func moveUp() {
 	if highlighted > 2 {
 		highlighted -= 3
@@ -73,11 +72,9 @@ func moveRight() {
 		highlighted++
 	}
 }
-func moveSelect() {
-	selectCell()
-}
 
-func selectCell() {
+// Select the currently highlighted tile
+func moveSelect() {
 	if board[highlighted] != ' ' {
 		return
 	}
@@ -92,6 +89,7 @@ func selectCell() {
 	xTurn = !xTurn
 }
 
+// Returns if the game has ended yet, and if so then who won
 func checkGameState() (bool, byte) {
 	// Check for game over conditions
 	if winner := getWinner(); winner != ' ' {
@@ -105,6 +103,7 @@ func checkGameState() (bool, byte) {
 	return false, 0
 }
 
+// Returns a byte containing the winning symbol, or empty if game is not over
 func getWinner() byte {
 	set := []int{}
 	var validWinner byte
@@ -129,12 +128,12 @@ func getWinner() byte {
 	return ' '
 }
 
+// Reset game state for a new game
 func reset() {
 	playing = true
 	turn = 0
 	board = []byte{' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
 	winCells = []int{}
-	// Switch start player every other game
 	xTurn = true
 	highlighted = 4
 }

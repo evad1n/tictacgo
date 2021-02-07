@@ -11,7 +11,7 @@ func startLocal() {
 	go handleLocalPlayer(nil)
 	xWins := 0
 	oWins := 0
-	gameNumber = 0
+	gameNumber := 0
 	for {
 		gameNumber++
 		reset()

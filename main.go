@@ -8,43 +8,28 @@ import (
 	"github.com/eiannone/keyboard"
 )
 
-type (
-	move struct {
-		player *player  // The player sending the move
-		do     moveFunc // The move to perform
-		end    bool     // Signifies game end
-	}
-
-	// Player is
-	player struct {
-		number int
-		log    *log.Logger
-		wins   int
-	}
-)
-
-var (
-	xTurn       bool
-	gameNumber  int
-	highlighted int
-	board       []byte
-	turn        int
-	playing     bool
-	listening   bool
-)
-
 const (
 	port = "9090"
 )
 
+// Game variables
 var (
-	keyboardInput chan keyboard.KeyEvent
-	moves         chan move
+	xTurn       bool
+	highlighted int // The currently highlighted tile
+	board       []byte
+	turn        int // Keep track of turns, mostly for ties
+	playing     bool
+)
+
+// Channels
+var (
+	keyboardInput chan keyboard.KeyEvent // Keyboard events from the local user
+	moves         chan move              // The move channel for game events
 )
 
 // I have to use log because telnet is shitty and doesn't understand newlines
 var (
-	localLog *log.Logger
+	localLog *log.Logger // Just an alias for os.Stdout so that it fits my function signatures
 )
 
 func main() {

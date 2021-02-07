@@ -19,8 +19,7 @@ func awaitPlayer() {
 		log.Fatalf("cant't start server on port %s: %v", port, err)
 	}
 	defer server.Close()
-	// Blocking
-	listening = true
+	// Blocking, allows 1 connection
 	conn, err := server.Accept()
 	if err != nil {
 		log.Fatalf("error accepting connection: %v", err)
@@ -110,7 +109,7 @@ func handleRemotePlayer(p *player, conn net.Conn) {
 func startRemote(p1 *player, p2 *player) {
 	fmt.Println("Starting remote game")
 
-	gameNumber = 0
+	gameNumber := 0
 	p1Ready := true
 	p2Ready := true
 	for replay := true; replay; replay = (p1Ready && p2Ready) {

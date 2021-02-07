@@ -9,42 +9,12 @@ import (
 	"github.com/eiannone/keyboard"
 )
 
-// Highlightable menu
-func drawMenu(options []string, choice int) {
-	for i, option := range options {
-		if i == choice {
-			fmt.Println(ansiWrap(option, "\x1b[30;46m"))
-		} else {
-			fmt.Println(option)
-		}
-	}
-}
-
-// Wrap some text in an ansi code
-func ansiWrap(text string, code string) string {
-	return fmt.Sprintf("%s%s\x1b[0m", code, text)
-}
-
-// Clears the screen
-func clearScreen(log *log.Logger) {
-	log.Print("\x1b[2J")
-}
-
-// Helper function for seeing if an int exists in a slice
-func contains(set []int, item int) bool {
-	for _, x := range set {
-		if x == item {
-			return true
-		}
-	}
-	return false
-}
-
 var (
 	runeToMove map[rune]moveFunc
 	keyToMove  map[keyboard.Key]moveFunc
 )
 
+// Initialize move maps
 func loadMoves() {
 	runeToMove = make(map[rune]moveFunc)
 	runeToMove['w'] = moveUp
@@ -99,7 +69,7 @@ func checkSpecial(buffer []rune) (keyboard.Key, error) {
 	return keyboard.KeyArrowDown, errors.New("Not a special key")
 }
 
-// Listen for keyboard input in background
+// Listen for keyboard input in background and send to keyboardInput channel
 func listenKeyboard() {
 	if err := keyboard.Open(); err != nil {
 		panic(err)
@@ -127,4 +97,37 @@ func listenKeyboard() {
 			}
 		}
 	}
+}
+
+// IO manip stuff
+
+// Highlightable menu
+func drawMenu(options []string, choice int) {
+	for i, option := range options {
+		if i == choice {
+			fmt.Println(ansiWrap(option, "\x1b[30;46m"))
+		} else {
+			fmt.Println(option)
+		}
+	}
+}
+
+// Wrap some text in an ansi code
+func ansiWrap(text string, code string) string {
+	return fmt.Sprintf("%s%s\x1b[0m", code, text)
+}
+
+// Clears the screen
+func clearScreen(log *log.Logger) {
+	log.Print("\x1b[2J")
+}
+
+// Helper function for seeing if an int exists in a slice
+func contains(set []int, item int) bool {
+	for _, x := range set {
+		if x == item {
+			return true
+		}
+	}
+	return false
 }

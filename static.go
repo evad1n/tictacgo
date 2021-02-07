@@ -1,5 +1,23 @@
 package main
 
+import "log"
+
+type (
+	move struct {
+		player *player  // The player sending the move
+		do     moveFunc // The move to perform
+		end    bool     // Signifies game end
+	}
+
+	player struct {
+		number int         // The player number for keeping track of turns
+		log    *log.Logger // The output log to print to
+		wins   int         // The total wins for this sessions
+	}
+
+	moveFunc func() // A move that affects the board
+)
+
 var winCells []int
 
 // Winning sets
