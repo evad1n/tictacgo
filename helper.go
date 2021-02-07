@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -38,48 +37,6 @@ func contains(set []int, item int) bool {
 		}
 	}
 	return false
-}
-
-func keyboardPrintLoop() {
-	scanner := bufio.NewScanner(os.Stdin)
-	// One char at a time
-	scanner.Split(bufio.ScanRunes)
-	for scanner.Scan() {
-		r := scanner.Text()
-		// fmt.Println(rune(r[0]))
-		fmt.Println(rune(r[0]), r)
-		fmt.Println("HELLO")
-
-		// moves <- move{p, key}
-	}
-}
-
-type moveFunc func()
-
-func moveUp() {
-	if highlighted > 2 {
-		highlighted -= 3
-	}
-}
-func moveDown() {
-	if highlighted < 6 {
-		highlighted += 3
-	}
-}
-func moveLeft() {
-	if highlighted != 0 && highlighted != 3 && highlighted != 6 {
-		highlighted--
-	}
-}
-func moveRight() {
-	if highlighted != 2 && highlighted != 5 && highlighted != 8 {
-		highlighted++
-	}
-}
-func moveSelect() {
-	if playing {
-		selectCell()
-	}
 }
 
 var (
@@ -139,4 +96,34 @@ func checkSpecial(buffer []rune) (keyboard.Key, error) {
 		}
 	}
 	return keyboard.KeyArrowDown, errors.New("Not a special key")
+}
+
+// Listen for keyboard input in background
+func listenKeyboard() {
+	if err := keyboard.Open(); err != nil {
+		panic(err)
+	}
+
+	defer keyboard.Close()
+
+	loadMoves()
+
+	for {
+		char, key, err := keyboard.GetKey()
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Printf("You pressed: rune %q, key %X\r\n", char, key)
+
+		switch key {
+		case keyboard.KeyCtrlC:
+			os.Exit(0)
+		default:
+			keyboardInput <- keyboard.KeyEvent{
+				Key:  key,
+				Rune: char,
+				Err:  nil,
+			}
+		}
+	}
 }
