@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/eiannone/keyboard"
 )
 
 func startLocal() {
 	fmt.Println("Starting local game")
-	go listenLocalGame()
-	var keyEv keyboard.KeyEvent
+	go handleLocalPlayer(nil)
+	xWins := 0
+	oWins := 0
 	gameNumber = 0
 	for {
 		gameNumber++
@@ -18,13 +18,19 @@ func startLocal() {
 		clearScreen(localLog)
 		drawBoard(localLog)
 		fmt.Println("X's turn:")
-		localGameLoop()
-		clearScreen(localLog)
+		if completed := listenLocalGame(&xWins, &oWins); !completed {
+			gameNumber--
+		} else {
+			clearScreen(localLog)
+		}
+		fmt.Printf("X wins: %d\n", xWins)
+		fmt.Printf("O wins: %d\n", oWins)
+		fmt.Printf("Ties: %d\n", gameNumber-(xWins+oWins))
 		fmt.Println("Press ENTER to play again")
 		fmt.Println("Press ESC to go back to the main menu")
 
 		for {
-			keyEv = <-keyboardInput
+			keyEv := <-keyboardInput
 
 			if keyEv.Key == keyboard.KeyEsc {
 				return
@@ -35,11 +41,14 @@ func startLocal() {
 	}
 }
 
-func listenLocalGame() {
+// Listen for one game. Returns if the game successfully completed
+func listenLocalGame(xWins *int, oWins *int) bool {
 	for m := range moves {
 		if m.end {
-			log.Println("Game session ended")
-			return
+			playing = false
+			clearScreen(localLog)
+			fmt.Print("Game ended early\n\n")
+			return false
 		}
 		if playing {
 			clearScreen(localLog)
@@ -47,40 +56,62 @@ func listenLocalGame() {
 			// Draw new board
 			drawBoard(localLog)
 			// Check for winner
-			if gameOver, endMsg := checkGameState(); gameOver {
+			if gameOver, winner := checkGameState(); gameOver {
 				playing = false
 				// Draw winning tiles
 				clearScreen(localLog)
 				drawBoard(localLog)
 				fmt.Println("Game Over!")
-				fmt.Print(endMsg)
-				fmt.Println("Press any key to continue")
-			} else {
-				if xTurn {
-					fmt.Println("X's turn:")
-				} else {
-					fmt.Println("O's turn")
+				switch winner {
+				case 'X':
+					fmt.Println("XWins!")
+					*xWins++
+					break
+				case 'O':
+					fmt.Println("O Wins!")
+					*oWins++
+					break
+				default:
+					fmt.Println("It's a tie")
+					break
 				}
+				return true
+			}
+
+			if xTurn {
+				fmt.Println("X's turn:")
+			} else {
+				fmt.Println("O's turn")
 			}
 		}
 	}
+	return false
 }
 
-func localGameLoop() {
-	for playing {
+func handleLocalPlayer(p *player) {
+	for {
 		keyEv := <-keyboardInput
+		// Put back menu events if we aren't playing
+		if !playing {
+			keyboardInput <- keyEv
+			continue
+		}
 		// End current game session on escape
 		if keyEv.Key == keyboard.KeyEsc {
-			return
+			moves <- move{
+				player: p,
+				do:     nil,
+				end:    true,
+			}
 		}
 		if validMoveFunc, exists := keyToMove[keyEv.Key]; exists {
 			moves <- move{
-				player: nil,
+				player: p,
 				do:     validMoveFunc,
 			}
 		} else if validMoveFunc, exists := runeToMove[keyEv.Rune]; exists {
 			moves <- move{
-				player: nil,
+				player: p,
 				do:     validMoveFunc,
 			}
 		}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 )
 
@@ -93,17 +92,17 @@ func selectCell() {
 	xTurn = !xTurn
 }
 
-func checkGameState() (bool, string) {
+func checkGameState() (bool, byte) {
 	// Check for game over conditions
 	if winner := getWinner(); winner != ' ' {
-		return true, fmt.Sprintf("%c wins!\n", winner)
+		return true, winner
 	}
 
 	if turn == 9 {
-		return true, fmt.Sprintf("It's a tie!\n")
+		return true, ' '
 	}
 
-	return false, ""
+	return false, 0
 }
 
 func getWinner() byte {

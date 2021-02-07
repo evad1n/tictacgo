@@ -24,14 +24,13 @@ type (
 )
 
 var (
-	xTurn         bool
-	gameNumber    int
-	highlighted   int
-	board         []byte
-	turn          int
-	playing       bool
-	listening     bool
-	remoteIsAlive bool
+	xTurn       bool
+	gameNumber  int
+	highlighted int
+	board       []byte
+	turn        int
+	playing     bool
+	listening   bool
 )
 
 const (

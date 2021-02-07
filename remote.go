@@ -25,10 +25,12 @@ func awaitPlayer() {
 	if err != nil {
 		log.Fatalf("error accepting connection: %v", err)
 	}
+	defer conn.Close()
 
 	log.Printf("Client connected from %s\n", conn.RemoteAddr().String())
 	fmt.Fprintf(conn, "\nWelcome to Tic-Tac-Go!\n\n")
 	disableLineMode(conn)
+	fmt.Fprintln(conn, "\x1b[?25l")
 
 	// Remote player
 	p2 := &player{
@@ -43,11 +45,11 @@ func awaitPlayer() {
 		wins:   0,
 	}
 	// Player input loops
-	remoteIsAlive = true
 	go handleRemotePlayer(p2, conn)
 	go handleLocalPlayer(p1)
 	startRemote(p1, p2)
 
+	fmt.Println("Game session ended")
 }
 
 func handleRemotePlayer(p *player, conn net.Conn) {
@@ -105,22 +107,6 @@ func handleRemotePlayer(p *player, conn net.Conn) {
 	}
 }
 
-func handleLocalPlayer(p *player) {
-	for remoteIsAlive {
-		keyEv := <-keyboardInput
-		// End current game session on escape
-		if keyEv.Key == keyboard.KeyEsc {
-
-		}
-		if validMoveFunc, exists := keyToMove[keyEv.Key]; exists {
-			moves <- move{
-				player: p,
-				do:     validMoveFunc,
-			}
-		}
-	}
-}
-
 func startRemote(p1 *player, p2 *player) {
 	fmt.Println("Starting remote game")
 
@@ -140,17 +126,41 @@ func startRemote(p1 *player, p2 *player) {
 			p2.number = (p2.number + 1) % 2
 		}
 
-		listenRemoteGame(p1, p2)
+		printTurn(p1, p2)
+		if completed := listenRemoteGame(p1, p2); !completed {
+			gameNumber--
+		} else {
+			clearScreen(p1.log)
+			clearScreen(p2.log)
+		}
 
-		fmt.Println("Press ENTER to play again!")
+		printScores(p1, p2, gameNumber)
+		p2.log.Println("Waiting for host to restart...")
+
+		p1.log.Println("Press ENTER to play again")
+		p1.log.Println("Press ESC to go back to the main menu (this will end the connection)")
+
+		for {
+			keyEv := <-keyboardInput
+
+			if keyEv.Key == keyboard.KeyEsc {
+				return
+			} else if keyEv.Key == keyboard.KeyEnter {
+				break
+			}
+		}
 	}
 }
 
-func listenRemoteGame(p1 *player, p2 *player) {
+func listenRemoteGame(p1 *player, p2 *player) bool {
 	for m := range moves {
 		if m.end {
-			log.Println("Game session ended")
-			return
+			playing = false
+			clearScreen(p1.log)
+			clearScreen(p2.log)
+			log.Println("Game ended early")
+			p2.log.Println("Game ended early by host")
+			return false
 		}
 		if playing {
 			// If it is their turn
@@ -162,31 +172,76 @@ func listenRemoteGame(p1 *player, p2 *player) {
 				drawBoard(p1.log)
 				drawBoard(p2.log)
 				// Check for winner
-				if gameOver, endMsg := checkGameState(); gameOver {
+				if gameOver, winner := checkGameState(); gameOver {
 					playing = false
 					// Draw winning tiles
 					clearScreen(p1.log)
 					clearScreen(p2.log)
 					drawBoard(p1.log)
 					drawBoard(p2.log)
-					// fmt.Println("Game Over!")
-					fmt.Print(endMsg)
-					// fmt.Println("Press any key to continue")
-				} else {
-					if turn%2 == p1.number {
-						p1.log.Println("Your turn")
-					} else {
-						p1.log.Println("Opponent's turn")
-					}
-
-					if turn%2 == p2.number {
-						p2.log.Println("Your turn")
-					} else {
-						p2.log.Println("Opponent's turn")
-					}
+					p1.log.Println("Game Over!")
+					p2.log.Println("Game Over!")
+					printWinner(winner, p1, p2)
+					return true
 				}
-
+				printTurn(p1, p2)
 			}
 		}
 	}
+	return false
+}
+
+func printTurn(p1 *player, p2 *player) {
+	if turn%2 == p1.number {
+		p1.log.Println("Your turn")
+	} else {
+		p1.log.Println("Opponent's turn")
+	}
+
+	if turn%2 == p2.number {
+		p2.log.Println("Your turn")
+	} else {
+		p2.log.Println("Opponent's turn")
+	}
+}
+
+func printWinner(winner byte, p1 *player, p2 *player) {
+	switch winner {
+	case 'X':
+		if p1.number == 0 {
+			p1.log.Println("You win!")
+			p2.log.Println("You lose!")
+			p1.wins++
+		} else {
+			p1.log.Println("You lose!")
+			p2.log.Println("You win!")
+			p2.wins++
+		}
+		break
+	case 'O':
+		if p1.number == 1 {
+			p1.log.Println("You win!")
+			p2.log.Println("You lose!")
+			p1.wins++
+		} else {
+			p1.log.Println("You lose!")
+			p2.log.Println("You win!")
+			p2.wins++
+		}
+		break
+	default:
+		p1.log.Println("It's a tie!")
+		p2.log.Println("It's a tie!")
+		break
+	}
+}
+
+func printScores(p1 *player, p2 *player, totalGames int) {
+	p1.log.Printf("Your wins: %d\n", p1.wins)
+	p1.log.Printf("Opponent wins: %d\n", p2.wins)
+	p1.log.Printf("Ties: %d\n", totalGames-(p1.wins+p2.wins))
+
+	p2.log.Printf("Your wins: %d\n", p2.wins)
+	p2.log.Printf("Opponent wins: %d\n", p1.wins)
+	p2.log.Printf("Ties: %d\n", totalGames-(p1.wins+p2.wins))
 }
