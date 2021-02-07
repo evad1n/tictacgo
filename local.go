@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/eiannone/keyboard"
 )
@@ -16,11 +15,11 @@ func startLocal() {
 	for {
 		gameNumber++
 		reset()
-		clearScreen()
-		drawBoard(os.Stdout)
+		clearScreen(localLog)
+		drawBoard(localLog)
 		fmt.Println("X's turn:")
 		localGameLoop()
-		clearScreen()
+		clearScreen(localLog)
 		fmt.Println("Press ENTER to play again")
 		fmt.Println("Press ESC to go back to the main menu")
 
@@ -43,16 +42,16 @@ func listenLocalGame() {
 			return
 		}
 		if playing {
-			clearScreen()
+			clearScreen(localLog)
 			m.do()
 			// Draw new board
-			drawBoard(os.Stdout)
+			drawBoard(localLog)
 			// Check for winner
 			if gameOver, endMsg := checkGameState(); gameOver {
 				playing = false
 				// Draw winning tiles
-				clearScreen()
-				drawBoard(os.Stdout)
+				clearScreen(localLog)
+				drawBoard(localLog)
 				fmt.Println("Game Over!")
 				fmt.Print(endMsg)
 				fmt.Println("Press any key to continue")

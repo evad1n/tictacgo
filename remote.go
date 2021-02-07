@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 
 	"github.com/eiannone/keyboard"
 )
 
 func awaitPlayer() {
-	clearScreen()
+	clearScreen(localLog)
 	fmt.Println("Waiting for player to connect...")
 	fmt.Printf("Host IP: %s\n", getLocalAddress())
 	fmt.Printf("Listening for connections on port %s\n", port)
@@ -30,16 +29,17 @@ func awaitPlayer() {
 	log.Printf("Client connected from %s\n", conn.RemoteAddr().String())
 	fmt.Fprintf(conn, "\nWelcome to Tic-Tac-Go!\n\n")
 	disableLineMode(conn)
+
 	// Remote player
 	p2 := &player{
 		number: 1,
-		stdout: conn,
+		log:    log.New(conn, "\x1b[0G", 0),
 		wins:   0,
 	}
 	// Local player
 	p1 := &player{
 		number: 0,
-		stdout: os.Stdout,
+		log:    localLog,
 		wins:   0,
 	}
 	// Player input loops
@@ -72,9 +72,11 @@ func handleRemotePlayer(p *player, conn net.Conn) {
 			}
 			// Check if the buffer has a valid char
 			if key, err := checkSpecial(buffer); err == nil {
-				moves <- move{
-					player: p,
-					do:     keyToMove[key],
+				if m, valid := keyToMove[key]; valid {
+					moves <- move{
+						player: p,
+						do:     m,
+					}
 				}
 				// Buffer used, so discard
 				buffer = nil
@@ -82,15 +84,17 @@ func handleRemotePlayer(p *player, conn net.Conn) {
 			}
 		} else {
 			// Treat as single character
-			moves <- move{
-				player: p,
-				do:     runeToMove[r],
+			if m, valid := runeToMove[r]; valid {
+				moves <- move{
+					player: p,
+					do:     m,
+				}
 			}
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-
+		log.Printf("remote scanner: %v", err)
 	}
 
 	// Send game over
@@ -126,6 +130,10 @@ func startRemote(p1 *player, p2 *player) {
 	for replay := true; replay; replay = (p1Ready && p2Ready) {
 		gameNumber++
 		reset()
+		clearScreen(p1.log)
+		clearScreen(p2.log)
+		drawBoard(p1.log)
+		drawBoard(p2.log)
 		// Switch start player every other game
 		if gameNumber > 1 {
 			p1.number = (p1.number + 1) % 2
@@ -139,8 +147,6 @@ func startRemote(p1 *player, p2 *player) {
 }
 
 func listenRemoteGame(p1 *player, p2 *player) {
-	drawBoard(p1.stdout)
-	drawBoard(p2.stdout)
 	for m := range moves {
 		if m.end {
 			log.Println("Game session ended")
@@ -149,10 +155,37 @@ func listenRemoteGame(p1 *player, p2 *player) {
 		if playing {
 			// If it is their turn
 			if m.player.number == turn%2 {
+				clearScreen(p1.log)
+				clearScreen(p2.log)
 				m.do()
+				// Draw new board
+				drawBoard(p1.log)
+				drawBoard(p2.log)
 				// Check for winner
-				drawBoard(p1.stdout)
-				drawBoard(p2.stdout)
+				if gameOver, endMsg := checkGameState(); gameOver {
+					playing = false
+					// Draw winning tiles
+					clearScreen(p1.log)
+					clearScreen(p2.log)
+					drawBoard(p1.log)
+					drawBoard(p2.log)
+					// fmt.Println("Game Over!")
+					fmt.Print(endMsg)
+					// fmt.Println("Press any key to continue")
+				} else {
+					if turn%2 == p1.number {
+						p1.log.Println("Your turn")
+					} else {
+						p1.log.Println("Opponent's turn")
+					}
+
+					if turn%2 == p2.number {
+						p2.log.Println("Your turn")
+					} else {
+						p2.log.Println("Opponent's turn")
+					}
+				}
+
 			}
 		}
 	}

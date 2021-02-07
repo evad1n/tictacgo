@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/eiannone/keyboard"
@@ -25,8 +26,8 @@ func ansiWrap(text string, code string) string {
 }
 
 // Clears the screen
-func clearScreen() {
-	fmt.Print("\x1b[2J")
+func clearScreen(log *log.Logger) {
+	log.Print("\x1b[2J")
 }
 
 // Helper function for seeing if an int exists in a slice

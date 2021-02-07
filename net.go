@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 )
 
@@ -19,15 +18,6 @@ func disableLineMode(conn net.Conn) {
 	for _, line := range noLineMode {
 		conn.Write(line)
 	}
-}
-
-// Handle a client connection with their own command loop
-func handleConnection(conn net.Conn, in chan int) {
-	defer conn.Close()
-	fmt.Fprintln(conn)
-	// Log connection to server
-	fmt.Printf("Client connected from %s", conn.RemoteAddr().String())
-	fmt.Fprintln(conn, "Welcome to Tic-Tac-Go!")
 }
 
 func getLocalAddress() string {

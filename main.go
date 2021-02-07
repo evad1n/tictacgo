@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"log"
+	"os"
 
 	"github.com/eiannone/keyboard"
 )
@@ -17,7 +18,7 @@ type (
 	// Player is
 	player struct {
 		number int
-		stdout io.Writer
+		log    *log.Logger
 		wins   int
 	}
 )
@@ -42,6 +43,11 @@ var (
 	moves         chan move
 )
 
+// I have to use log because telnet is shitty and doesn't understand newlines
+var (
+	localLog *log.Logger
+)
+
 func main() {
 	// Set up keyboard listening
 	keyboardInput = make(chan keyboard.KeyEvent)
@@ -50,13 +56,16 @@ func main() {
 	// Move event channel
 	moves = make(chan move)
 
+	// Just for consistency
+	localLog = log.New(os.Stdout, "", 0)
+
 	// Menu selection
 	mode := 0
 	modes := []string{"1. Single Keyboard", "2. Remote Connection"}
 
 	for {
-		clearScreen()
-		fmt.Print("Welcome to Tic-Tac-Go!")
+		clearScreen(localLog)
+		fmt.Println("Welcome to Tic-Tac-Go!")
 		fmt.Println("Select game mode")
 		drawMenu(modes, mode)
 

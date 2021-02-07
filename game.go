@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"log"
 )
 
 // Drawn board is 29x17 characters (9x5 for each cell)
-func drawBoard(w io.Writer) {
+func drawBoard(log *log.Logger) {
 	for row := 0; row < 3; row++ {
 		// Each cell is 5 lines tall
 		for cellLine := 0; cellLine < 5; cellLine++ {
@@ -42,14 +42,14 @@ func drawBoard(w io.Writer) {
 					line += "|"
 				}
 			}
-			fmt.Fprintln(w, line)
+			log.Println(line)
 		}
 		// Horizontal divider
 		if row != 2 {
-			fmt.Fprintln(w, "---------+---------+---------")
+			log.Println("---------+---------+---------")
 		}
 	}
-	fmt.Println()
+	log.Println()
 }
 
 type moveFunc func()
